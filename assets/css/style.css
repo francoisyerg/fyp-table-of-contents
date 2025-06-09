@@ -1,0 +1,55 @@
+.fyptaco_wrapper {
+  border: none;
+  background: #fff;
+  padding: 1.5em 1.5em 1em 1.5em;
+  margin: 2em 0;
+  border-radius: 10px;
+  box-shadow: 0 2px 16px 0 rgba(0, 0, 0, 0.06);
+  font-size: 1rem;
+  line-height: 1.7;
+  max-width: 600px;
+}
+
+.fyptaco-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1em;
+  margin-bottom: 1em;
+}
+
+.fyptaco-title {
+  margin: 0 0 1em 0;
+  padding: 0;
+}
+
+.fyptaco-toggle-label {
+  cursor: pointer;
+  margin: 0;
+}
+
+.fyptaco-toggle-checkbox {
+  display: none;
+}
+
+.fyptaco-toggle-checkbox + .fyptaco-list {
+  display: none;
+}
+
+.fyptaco-toggle-checkbox:checked + .fyptaco-list {
+  display: block;
+}
+
+.fyptaco-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.fyptaco-list li {
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+  position: relative;
+  transition: background 0.2s;
+  border-radius: 4px;
+}
