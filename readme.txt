@@ -1,7 +1,7 @@
 === FYP Table of Contents ===
 Contributors: francoisyerg
 Donate link: https://buymeacoffee.com/francoisyerg
-Tags: 
+Tags: table of contents, toc, navigation, seo, user experience
 Requires at least: 5.8
 Tested up to: 6.8
 Requires PHP: 7.4
@@ -21,36 +21,58 @@ Whether you want to enhance readability, boost engagement, or make your content 
 
 **Key Features:**
 
-- **Automatic Table of Contents:** Instantly generates a structured table of contents for your posts and pages.
-- **Customizable Appearance:** Easily adjust the style, position, and headings included in the TOC.
-- **Supports All Headings:** Choose which heading levels (H1–H6) to include or exclude.
-- **Smooth Navigation:** Clickable links allow readers to jump to any section of your content.
-- **Theme Compatibility:** Works seamlessly with any WordPress theme.
-- **Lightweight & Fast:** Optimized for performance with minimal impact on site speed.
+- **🚀 Automatic Generation:** Instantly creates a structured table of contents from your content headings
+- **🎨 Fully Customizable:** Control appearance, styling, and which headings to include/exclude
+- **📱 Responsive Design:** Works perfectly on desktop, tablet, and mobile devices
+- **⚡ Performance Optimized:** Lightweight code with minimal impact on page load times
+- **🔧 Easy Integration:** Simple shortcode implementation - no coding required
+- **🎪 Toggle Functionality:** Optional collapse/expand feature for better UX
+- **🌈 Theme Compatible:** Works seamlessly with any WordPress theme
+- **📊 Smart Detection:** Only displays when minimum heading requirements are met
 
 == Usage ==
 
 To display the table of contents on your website, simply add the `[fyplugins_table_of_contents]` shortcode to any page or post where you want it to appear.
 
 == Shortcode Parameters ==
+
 The `[fyplugins_table_of_contents]` shortcode supports the following parameters to customize its behavior:
 
-- `min_headings` (integer): Minimum number of headings required to display the table of contents. Default is `3`.
-- `include` (string): Comma-separated list of heading levels to include (e.g., `h2,h3,h4`). Default is `h2,h3`.
-- `exclude` (string): Comma-separated list of headings or CSS selectors to exclude from the table of contents. Optional.
-- `title` (string): Custom title for the table of contents. Default is `Table of Contents`.
-- `class` (string): Additional CSS classes for custom styling. Optional.
-- `toggle` (boolean): Show a toggle button to collapse/expand the table of contents. Accepts `true` or `false`. Default is `false`.
+- **`min_headings`** (integer): Minimum number of headings required to display the table of contents. Default: `3`.
+- **`included`** (string): Comma-separated list of heading levels to include (e.g., `h2,h3,h4`). Default: `h2,h3`.
+- **`excluded`** (string): Comma-separated list of headings or CSS selectors to exclude from the table of contents (e.g., `.hidden_title,h4`). Default: empty.
+- **`title`** (string): Custom title for the table of contents. Default: `Table of Contents`.
+- **`class`** (string): Additional CSS classes for custom styling. Default: empty.
+- **`toggle`** (boolean): Show or hide a toggle button to collapse/expand the table of contents. Accepts `true` or `false`. Default: `false`.
+- **`default_toggle`** (string): Set the initial toggle state of the table of contents. Accepts `show` or `hide`. Default: `show`.
 
-**Example usage:**
+**Basic Usage:**
+```
+[fyplugins_table_of_contents]
+```
 
-[fyplugins_table_of_contents min_headings="3" include="h2,h3" exclude="" title="Table of Contents" class="" toggle="false"]
+**Advanced Usage Example:**
+```
+[fyplugins_table_of_contents min_headings="2" included="h2,h3,h4" excluded=".no-toc" title="Content Navigation" class="custom-toc" toggle="true" default_toggle="show"]
+```
 
 == Installation ==
 
-1. Upload the plugin files to the `/wp-content/plugins/fyp-table-of-contents` directory, or install the plugin through the WordPress plugins screen directly.
-2. Activate the plugin through the 'Plugins' screen in WordPress.
-3. Include the shortcode [fyplugins_table_of_content] in your pages / posts
+= Automatic Installation =
+1. Log in to your WordPress admin panel
+2. Go to Plugins → Add New
+3. Search for "FYP Table of Contents"
+4. Click "Install Now" and then "Activate"
+5. Add the shortcode `[fyplugins_table_of_contents]` to any post or page
+
+= Manual Installation =
+1. Download the plugin files from WordPress.org
+2. Upload the plugin files to the `/wp-content/plugins/fyp-table-of-contents` directory via FTP
+3. Activate the plugin through the 'Plugins' screen in WordPress
+4. Add the shortcode `[fyplugins_table_of_contents]` to your content
+
+= Getting Started =
+Once activated, simply add the shortcode `[fyplugins_table_of_contents]` anywhere in your post or page content where you want the table of contents to appear. The plugin will automatically scan your content for headings and generate the table of contents.
 
 == Frequently Asked Questions ==
 
@@ -66,13 +88,45 @@ Yes, you can specify which heading levels (H1–H6) to include or exclude using 
 = Will this plugin affect my site's performance? =
 FYP Table of Contents is lightweight and optimized for performance. It only generates and displays the table of contents when needed, so it has minimal impact on your site's speed.
 
+= Can I use multiple table of contents on the same page? =
+Yes, you can add multiple instances of the shortcode on the same page with different parameters to create customized table of contents for different sections.
+
+= Can I style the table of contents to match my theme? =
+Yes, you can use the `class` parameter to add custom CSS classes and style the table of contents to perfectly match your theme's design.
+
+= What happens if my content doesn't have enough headings? =
+The plugin only displays the table of contents when the minimum number of headings (default: 3) is met. You can adjust this using the `min_headings` parameter.
+
+= Is the plugin translation ready? =
+The plugin is built with internationalization in mind and can be translated into other languages.
+
+= How do I exclude specific headings from the table of contents? =
+Use the `excluded` parameter with CSS selectors or specific heading text. For example: `excluded=".no-toc,#skip-this"`
+
 == Screenshots ==
 
+1. **Basic Table of Contents** - Simple, clean table of contents generated automatically from page headings
+2. **Toggle Functionality** - Table of contents with collapse/expand toggle button
 
+== Support ==
+
+If you need help with the plugin, please:
+
+1. Check the FAQ section above for common questions
+2. Visit the [plugin support forum](https://wordpress.org/support/plugin/fyp-table-of-contents/)
+
+== Upgrade Notice ==
+
+= 1.0.0 =
+Initial release of FYP Table of Contents. Start improving your content navigation today!
 
 == Changelog ==
 
 = 1.0.0 =
 * Initial release
-
-== Upcoming Improvements (TODO) ==
+* Automatic table of contents generation from heading tags
+* Customizable shortcode with multiple parameters
+* Responsive design for all devices
+* Theme compatibility across all WordPress themes
+* Toggle functionality for collapsible table of contents
+* Smart heading detection and filtering
