@@ -3,24 +3,26 @@
 /**
  * Plugin Name: FYP Table of Contents
  * Description: Generate a table of contents for posts based on headings.
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: François Yerg
  * Author URI: https://www.francoisyerg.net
  * License: GPL2
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: fyp-table-of-contents
  * Domain Path: /languages
- */
+*/
 
-if (!defined('ABSPATH')) {
-    exit;
-}
+// Exit if accessed directly
+defined('ABSPATH') || exit;
 
 class FYPTACO_Table_of_Contents
 {
+    private const CACHE_GROUP = 'fyplugins_table_of_contents';
+    private const CACHE_EXPIRATION = 3600; // 1 hour
+
     private static $instance = null;
     private bool $processing = false;
-    private $processing_shortcode = false;
+    private bool $processing_shortcode = false;
 
     /**
      * Get the singleton instance of the class.
@@ -47,6 +49,14 @@ class FYPTACO_Table_of_Contents
         add_filter('the_content', [$this, 'add_heading_ids'], 10);
 
         add_shortcode('fyplugins_table_of_contents', [$this, 'render_shortcode']);
+
+        // Cache management hooks
+        add_action('save_post', [$this, 'clear_post_cache']);
+        add_action('delete_post', [$this, 'clear_post_cache']);
+        add_action('wp_update_post', [$this, 'clear_post_cache']);
+        add_action('switch_theme', [$this, 'clear_all_cache']);
+        add_action('activated_plugin', [$this, 'clear_all_cache']);
+        add_action('deactivated_plugin', [$this, 'clear_all_cache']);
     }
 
     /**
@@ -60,7 +70,19 @@ class FYPTACO_Table_of_Contents
     }
 
     /**
+     * Check if the shortcode is present in the content.
+     *
+     * @param string $content The content to check.
+     * @return bool True if the shortcode is present, false otherwise.
+     */
+    private function has_shortcode($content): bool
+    {
+        return has_shortcode($content, 'fyplugins_table_of_contents');
+    }
+
+    /**
      * Add IDs to headings in the content for linking.
+     * Only processes content if the shortcode is present.
      *
      * @param string $content The post content.
      * @param string|null $render_slug Optional render slug.
@@ -77,11 +99,33 @@ class FYPTACO_Table_of_Contents
             return $content;
         }
 
+        global $post;
+        if (!$post) {
+            return $content;
+        }
+
+        // Only process if the shortcode is present in the content
+        if (!$this->has_shortcode($content)) {
+            return $content;
+        }
+
+        // Try to get cached content first
+        $cache_key = $this->get_content_cache_key($post->ID, $content);
+        $cached_content = wp_cache_get($cache_key, self::CACHE_GROUP);
+
+        if ($cached_content !== false) {
+            return $cached_content;
+        }
+
         $this->processing = true;
 
         list($content, $_tree) = $this->build_heading_tree($content, ['h2', 'h3'], []);
 
         $this->processing = false;
+
+        // Cache the processed content
+        wp_cache_set($cache_key, $content, self::CACHE_GROUP, self::CACHE_EXPIRATION);
+        $this->track_cache_key($post->ID, $cache_key);
 
         return $content;
     }
@@ -124,11 +168,21 @@ class FYPTACO_Table_of_Contents
             return '';
         }
 
+        // Create cache key for shortcode
+        $cache_key = $this->get_shortcode_cache_key($post->ID, $atts);
+        $cached_output = wp_cache_get($cache_key, self::CACHE_GROUP);
+
+        if ($cached_output !== false) {
+            $this->processing_shortcode = false;
+            return $cached_output;
+        }
+
         $content = get_post_field('post_content', $post->ID);
         $content = do_shortcode($content); // Important pour Divi
         list($_, $tree, $headings_count) = $this->build_heading_tree($content, $included_levels, $excluded_selectors, true);
 
         if ($headings_count < $min_headings || empty($tree)) {
+            $this->processing_shortcode = false;
             return '';
         }
 
@@ -161,7 +215,15 @@ class FYPTACO_Table_of_Contents
         echo '</ul>';
 
         echo '</nav>';
-        return ob_get_clean();
+
+        $output = ob_get_clean();
+
+        // Cache the rendered output
+        wp_cache_set($cache_key, $output, self::CACHE_GROUP, self::CACHE_EXPIRATION);
+        $this->track_cache_key($post->ID, $cache_key);
+
+        $this->processing_shortcode = false;
+        return $output;
     }
 
     /**
@@ -195,6 +257,14 @@ class FYPTACO_Table_of_Contents
      */
     private function build_heading_tree($content, $included_levels, $excluded_selectors = [], $count_headings = false): array
     {
+        // Create cache key for tree building
+        $cache_key = $this->get_tree_cache_key($content, $included_levels, $excluded_selectors);
+        $cached_result = wp_cache_get($cache_key, self::CACHE_GROUP);
+
+        if ($cached_result !== false) {
+            return $cached_result;
+        }
+
         $pattern = '/<h([1-6])([^>]*)>(.*?)<\/h\1>/is';
         preg_match_all($pattern, $content, $matches, PREG_SET_ORDER);
 
@@ -258,7 +328,12 @@ class FYPTACO_Table_of_Contents
             $headings_count++;
         }
 
-        return [$content, $tree, $headings_count];
+        $result = [$content, $tree, $headings_count];
+
+        // Cache the result
+        wp_cache_set($cache_key, $result, self::CACHE_GROUP, self::CACHE_EXPIRATION);
+
+        return $result;
     }
 
     /**
@@ -290,6 +365,147 @@ class FYPTACO_Table_of_Contents
         $selectors = array_filter(array_map('trim', explode(',', $str)));
         return $selectors;
     }
+
+    /**
+     * Generate cache key for content processing.
+     *
+     * @param int $post_id The post ID.
+     * @param string $content The content to process.
+     * @return string The cache key.
+     */
+    private function get_content_cache_key($post_id, $content): string
+    {
+        return 'content_' . $post_id . '_' . md5($content . '_with_shortcode');
+    }
+
+    /**
+     * Generate cache key for shortcode output.
+     *
+     * @param int $post_id The post ID.
+     * @param array $atts The shortcode attributes.
+     * @return string The cache key.
+     */
+    private function get_shortcode_cache_key($post_id, $atts): string
+    {
+        return 'shortcode_' . $post_id . '_' . md5(serialize($atts));
+    }
+
+    /**
+     * Generate cache key for heading tree building.
+     *
+     * @param string $content The content to process.
+     * @param array $included_levels The included heading levels.
+     * @param array $excluded_selectors The excluded selectors.
+     * @return string The cache key.
+     */
+    private function get_tree_cache_key($content, $included_levels, $excluded_selectors): string
+    {
+        $key_data = [
+            'content' => md5($content),
+            'levels' => $included_levels,
+            'excluded' => $excluded_selectors
+        ];
+        return 'tree_' . md5(serialize($key_data));
+    }
+
+    /**
+     * Track cache keys for a specific post to enable efficient cache clearing.
+     *
+     * @param int $post_id The post ID.
+     * @param string $cache_key The cache key to track.
+     * @return void
+     */
+    private function track_cache_key($post_id, $cache_key): void
+    {
+        if (!$post_id) {
+            return;
+        }
+
+        $cache_keys = wp_cache_get('post_cache_keys_' . $post_id, self::CACHE_GROUP);
+
+        if (!is_array($cache_keys)) {
+            $cache_keys = [];
+        }
+
+        $cache_keys[] = $cache_key;
+
+        // Store the cache keys list (expires after 1 day)
+        wp_cache_set('post_cache_keys_' . $post_id, $cache_keys, self::CACHE_GROUP, 86400);
+    }
+
+    /**
+     * Clear cache for a specific post.
+     *
+     * @param int $post_id The post ID.
+     * @return void
+     */
+    public function clear_post_cache($post_id): void
+    {
+        if (!$post_id) {
+            return;
+        }
+
+        // Get all cache keys for this post
+        $cache_keys = wp_cache_get('post_cache_keys_' . $post_id, self::CACHE_GROUP);
+
+        if ($cache_keys && is_array($cache_keys)) {
+            foreach ($cache_keys as $key) {
+                wp_cache_delete($key, self::CACHE_GROUP);
+            }
+        }
+
+        // Clear the cache keys list
+        wp_cache_delete('post_cache_keys_' . $post_id, self::CACHE_GROUP);
+
+        // Clear common patterns for this post
+        $patterns = [
+            'content_' . $post_id,
+            'shortcode_' . $post_id,
+            'tree_'
+        ];
+
+        foreach ($patterns as $pattern) {
+            // Note: WordPress object cache doesn't support wildcard deletion
+            // This is a limitation, but we clear what we can
+            wp_cache_delete($pattern, self::CACHE_GROUP);
+        }
+    }
+
+    /**
+     * Clear all plugin cache.
+     *
+     * @return void
+     */
+    public function clear_all_cache(): void
+    {
+        // WordPress object cache doesn't support group deletion
+        // This is a limitation of the wp_cache_* functions
+        // In a production environment, you might want to use a more sophisticated
+        // caching system like Redis or Memcached with proper group deletion
+
+        // For now, we'll just clear the cache we can track
+        wp_cache_flush();
+    }
+
+    /**
+     * Get cache statistics (for debugging).
+     *
+     * @return array Cache statistics.
+     */
+    public function get_cache_stats(): array
+    {
+        return [
+            'cache_group' => self::CACHE_GROUP,
+            'cache_expiration' => self::CACHE_EXPIRATION,
+            'cache_enabled' => function_exists('wp_cache_get')
+        ];
+    }
 }
 
 FYPTACO_Table_of_Contents::get_instance();
+
+// Plugin activation hook
+register_activation_hook(__FILE__, function () {
+    // Set a transient to show cache info notice
+    set_transient('fyptaco_show_cache_notice', true, 30);
+});
